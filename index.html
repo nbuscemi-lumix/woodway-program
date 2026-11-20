@@ -23,7 +23,7 @@
   --sky: #afcfff;
   --magenta: #c8329a;
   --font: "Public Sans", "Helvetica Neue", Arial, sans-serif;
-  --label: 272px;
+  --label: clamp(150px, 22cqw, 272px);
   color-scheme: light;
 }
 
@@ -60,10 +60,9 @@ h1 {
 
 .sub { margin-top: 14px; font-size: 17px; font-weight: 600; }
 
-.scroll { overflow-x: auto; margin-top: 28px; }
+.scroll { margin-top: 28px; container-type: inline-size; }
 
 .gantt {
-  min-width: 1000px;
   position: relative;
   border: 1px solid var(--line);
   background: var(--paper);
@@ -214,6 +213,32 @@ h1 {
   overflow: hidden;
 }
 .gl { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--faint); }
+.mshort { display: none; }
+
+/* Responsive: the chart reacts to its own width, so it holds up in a narrow window, a side panel or a resized slide. */
+@container (max-width: 900px) {
+  .mfull { display: none; }
+  .mshort { display: inline; }
+  .tick:not(.t2) { display: none; }
+  .bdate { font-size: 10.5px; }
+  .pm { display: none; }
+}
+
+/* Narrow: each task stacks its name above a full-width lane. */
+@container (max-width: 620px) {
+  .head { grid-template-columns: 1fr; }
+  .head-label { display: none; }
+  .overlay { left: 0; }
+  .mnum { display: none; }
+  .pm { display: inline; }
+  .tick:not(.t4) { display: none; }
+  .row:not(.phase) { flex-direction: column; min-height: 0; }
+  .row:not(.phase) .cell { flex: none; border-right: 0; padding: 10px 12px 0; }
+  .row:not(.phase) .lane { flex: none; height: 38px; }
+  .row.phase .cell { flex: 1; border-right: 0; }
+  .row.phase .lane { display: none; }
+}
+
 @media (max-width: 640px) {
   body { padding: 24px 16px 32px 22px; }
 }
@@ -271,7 +296,8 @@ h1 {
     var next = Date.UTC(2026, 12 + i, 1);
     var fd = new Date(first);
     months += '<div class="month" style="flex:0 0 ' + ((next - first) / DAY / TOTAL * 100).toFixed(3) + '%">' +
-      FULL[fd.getUTCMonth()] + " " + fd.getUTCFullYear() +
+      '<span class="mfull">' + FULL[fd.getUTCMonth()] + " " + fd.getUTCFullYear() + "</span>" +
+      '<span class="mshort">' + MON[fd.getUTCMonth()] + "</span>" +
       '<span class="mnum">Month ' + (i + 1) + "</span></div>";
   }
 
@@ -279,10 +305,11 @@ h1 {
   var ticks = "", grid = "";
   var t = START;
   while (new Date(t).getUTCDay() !== 1) t += DAY;
-  for (; t < END; t += 7 * DAY) {
+  for (var ti = 0; t < END; t += 7 * DAY, ti++) {
     var p = pct(t);
     grid += '<div class="gl" style="left:' + p.toFixed(3) + '%"></div>';
-    if (p < 97.5) ticks += '<span class="tick" style="left:' + p.toFixed(3) + '%">' + new Date(t).getUTCDate() + "</span>";
+    if (p < 97.5) ticks += '<span class="tick' + (ti % 2 === 0 ? " t2" : "") + (ti % 4 === 0 ? " t4" : "") +
+      '" style="left:' + p.toFixed(3) + '%">' + new Date(t).getUTCDate() + "</span>";
   }
 
   // Rows
